@@ -2,40 +2,43 @@ package server;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundMessageHandlerAdapter;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
+import io.netty.util.concurrent.GlobalEventExecutor;
 
-/**
- * Created by wojtek on 14/05/2017.
- */
-public class ChatServerHandler extends ChannelInboundMessageHandlerAdapter<String> {
+public class ChatServerHandler extends SimpleChannelInboundHandler<String> {
+
+    public static final ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 
     @Override
-    public void afterAdd(ChannelHandlerContext ctx) throws Exception {
+    public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
         Channel incoming = ctx.channel();
-        for (Channel channel : channels){
-            channel.write("[SERVER] - " +incoming.remoteAddress() + " has joined");
+        for (Channel channel : channels) {
+            channel.writeAndFlush("[SERVER] - " + incoming.remoteAddress() + " has joined\r\n");
         }
         channels.add(incoming);
+        super.handlerAdded(ctx);
     }
 
     @Override
-    public void afterRemove(ChannelHandlerContext ctx) throws Exception {
+    public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
         Channel incoming = ctx.channel();
-        for (Channel channel : channels){
-            channel.write("[SERVER] - " +incoming.remoteAddress() + " has left");
+        for (Channel channel : channels) {
+            if (channel != incoming) {
+                channel.writeAndFlush("[" + incoming.remoteAddress() + "] left" + "\r\n");
+            }
         }
-        channels.remove(incoming);
+        super.handlerRemoved(ctx);
     }
 
-    public static final ChannelGroup channels = new DefaultChannelGroup();
+
     @Override
-    public void messageReceived(ChannelHandlerContext channelHandlerContext, String s) throws Exception {
-        Channel incoming = channelHandlerContext.channel();
+    protected void channelRead0(ChannelHandlerContext ctx, String msg) throws Exception {
+        Channel incoming = ctx.channel();
         for (Channel channel : channels) {
-            if (channel != incoming){
-                channel.write("[" + incoming.remoteAddress() + "]" + s + "\r\n");
+            if (channel != incoming) {
+                channel.writeAndFlush("[" + incoming.remoteAddress() + "] says: " + msg + "\r\n");
             }
         }
     }

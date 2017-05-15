@@ -12,6 +12,7 @@ public class ChatClientInitializer extends ChannelInitializer<SocketChannel> {
 
     @Override
     public void initChannel(SocketChannel socketChannel) throws Exception {
+        System.out.println("client initChannel");
         ChannelPipeline pipeline = socketChannel.pipeline();
         pipeline.addLast("framer", new DelimiterBasedFrameDecoder(8192, Delimiters.lineDelimiter()));
         pipeline.addLast("decoder", new StringDecoder());

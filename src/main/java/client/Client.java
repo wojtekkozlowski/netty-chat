@@ -3,7 +3,7 @@ package client;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.socket.nio.NioEventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
 import java.io.BufferedReader;
@@ -19,7 +19,7 @@ public class Client {
         new Client("localhost", 8000).run();
     }
 
-    public Client(String host, int port){
+    public Client(String host, int port) {
         this.host = host;
         this.port = port;
     }
@@ -35,13 +35,13 @@ public class Client {
         try {
             channel = bootstrap.connect().sync().channel();
             BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-            while (true){
-                channel.write(br.readLine() + "\r\n");
+            while (true) {
+                channel.writeAndFlush(br.readLine() + "\r\n");
             }
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         } finally {
-            eventLoopGroup.shutdown();
+            eventLoopGroup.shutdownGracefully();
         }
     }
 }

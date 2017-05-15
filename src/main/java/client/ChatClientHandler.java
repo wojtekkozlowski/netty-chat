@@ -1,15 +1,15 @@
 package client;
 
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundMessageHandlerAdapter;
+import io.netty.channel.SimpleChannelInboundHandler;
 
 /**
  * Created by wojtek on 14/05/2017.
  */
-public class ChatClientHandler extends ChannelInboundMessageHandlerAdapter<String>{
+public class ChatClientHandler extends SimpleChannelInboundHandler<String> {
 
     @Override
-    public void messageReceived(ChannelHandlerContext channelHandlerContext, String s) throws Exception {
-        System.out.println(s);
+    protected void channelRead0(ChannelHandlerContext ctx, String msg) throws Exception {
+        System.out.println(msg);
     }
 }
