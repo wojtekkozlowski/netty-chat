@@ -14,6 +14,7 @@ public class ChatServerHandler extends SimpleChannelInboundHandler<String> {
     @Override
     public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
         Channel incoming = ctx.channel();
+        System.out.println("[SERVER] - " + incoming.remoteAddress() + " has joined\r\n");
         for (Channel channel : channels) {
             channel.writeAndFlush("[SERVER] - " + incoming.remoteAddress() + " has joined\r\n");
         }
@@ -24,6 +25,7 @@ public class ChatServerHandler extends SimpleChannelInboundHandler<String> {
     @Override
     public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
         Channel incoming = ctx.channel();
+        System.out.println("SERVER - [" + incoming.remoteAddress() + "] left" + "\r\n");
         for (Channel channel : channels) {
             if (channel != incoming) {
                 channel.writeAndFlush("[" + incoming.remoteAddress() + "] left" + "\r\n");
@@ -36,6 +38,7 @@ public class ChatServerHandler extends SimpleChannelInboundHandler<String> {
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, String msg) throws Exception {
         Channel incoming = ctx.channel();
+        System.out.println("[" + incoming.remoteAddress() + "] says: " + msg + "\r\n");
         for (Channel channel : channels) {
             if (channel != incoming) {
                 channel.writeAndFlush("[" + incoming.remoteAddress() + "] says: " + msg + "\r\n");
