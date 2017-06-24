@@ -16,6 +16,7 @@ public class Server {
     private final int port;
 
     public static void main(String[] args) throws Exception {
+        System.out.println("\n\nUse SSL: " + useSSL + "\n\n");
         Metrics.getInstance().addMetric(() -> "channels: "+ TerminalChannelHandler.channels.size());
         Server server = new Server(8000);
         server.run();
