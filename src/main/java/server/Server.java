@@ -10,18 +10,18 @@ import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 public class Server {
     private final int port;
-    public static SslContext sslContext;
+    static SslContext sslContext;
 
     public static void main(String[] args) throws Exception {
         new Server(8000).run();
     }
 
-    public Server(int port) throws Exception {
+    private Server(int port) throws Exception {
         this.port = port;
         configureSSL();
     }
 
-    public void run(){
+    private void run(){
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         ServerBootstrap serverBootstrap = new ServerBootstrap()
