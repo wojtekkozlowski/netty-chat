@@ -12,6 +12,9 @@ import org.jpos.util.SimpleLogListener;
 
 import java.io.IOException;
 import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class Client {
 
@@ -19,15 +22,32 @@ public class Client {
 
     public static void main(String[] args) throws InterruptedException, IOException, ISOException {
         LOGGER.addListener(new SimpleLogListener(System.err));
+        System.setProperty("https.protocols", "TLSv1");
         new Client();
     }
 
     Client() throws ISOException, InterruptedException, IOException {
+        ExecutorService es = Executors.newFixedThreadPool(10);
+        for (int i = 0; i < 10; i++) {
+            es.submit(() -> {
+                try {
+                    startChannel();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+        }
+        es.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+//        startChannel();
+    }
+
+    private void startChannel() throws IOException, ISOException, InterruptedException {
         XMLChannel channel = new XMLChannel(new XMLPackager());
         channel.setHost("localhost", 8000);
-            channel.setSocketFactory(new SunJSSESocketFactory());
+        channel.setSocketFactory(new SunJSSESocketFactory());
         channel.setConfiguration(clientConfiguration());
-        while(!channel.isConnected()) {
+
+        while (!channel.isConnected()) {
             try {
                 channel.connect();
             } catch (IOException e) {
@@ -36,14 +56,12 @@ public class Client {
             }
         }
 
-        while(true){
+        while (true) {
             channel.send(getIsoMsg());
             ISOMsg receive = channel.receive();
             System.out.println(receive);
             Thread.sleep(1000);
         }
-
-//        channel.disconnect();
     }
 
     private Configuration clientConfiguration() {
@@ -53,8 +71,8 @@ public class Client {
         props.put("storepassword", "qwerty");
         props.put("keypassword", "qwerty");
         props.put("addEnabledCipherSuite", "SSL_RSA_WITH_3DES_EDE_CBC_SHA");
-        props.put("timeout", "1000");
-        props.put("connect-timeout", "1000");
+        props.put("timeout", "2000");
+        props.put("connect-timeout", "2000");
         return new SimpleConfiguration(props);
     }
 
