@@ -14,15 +14,12 @@ public class TerminalChannelHandler extends SimpleChannelInboundHandler<String> 
     @Override
     public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
         Channel incoming = ctx.channel();
-//        System.out.println("[connected]: " + incoming.remoteAddress());
         channels.add(incoming);
         super.handlerAdded(ctx);
     }
 
     @Override
     public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
-//        Channel incoming = ctx.channel();
-//        System.out.println("[removed]: " + incoming.remoteAddress() + " left");
         super.handlerRemoved(ctx);
     }
 
@@ -30,7 +27,6 @@ public class TerminalChannelHandler extends SimpleChannelInboundHandler<String> 
     protected void channelRead0(ChannelHandlerContext ctx, String msg) throws Exception {
         Channel incoming = ctx.channel();
         String s = msg.replaceFirst("0800", "0810");
-//        System.out.println("[SERVER] " + incoming.remoteAddress() + " replying: " + s + "\r\n");
         incoming.writeAndFlush(s+"\n");
     }
 }
