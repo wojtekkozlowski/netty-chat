@@ -17,25 +17,32 @@ public class Server {
 
     public static void main(String[] args) throws Exception {
         Metrics.getInstance().addMetric(() -> "channels: " + TerminalChannelHandler.channels.size());
-        // SSL
-        Boolean useSSL = args.length > 0 ? Boolean.valueOf(args[0]) : true;
+        Boolean useSSL;
+        if (args.length > 0){
+            useSSL =  Boolean.valueOf(args[0]);
+        } else {
+            System.out.println("Usage:");
+            System.out.println("<use SSL? true|false>");
+            useSSL = true;
+        }
+        System.out.println("\n\nUse SSL: " + useSSL + "\n\n");
         Server server = new Server(8000, useSSL);
         server.run();
     }
 
     private Server(int port, Boolean useSSL) throws Exception {
         this.useSSL = useSSL;
-        System.out.println("\n\nUse SSL: " + this.useSSL + "\n\n");
+
         this.port = port;
         SelfSignedCertificate cert = new SelfSignedCertificate();
         Server.sslContext = SslContextBuilder.forServer(cert.certificate(), cert.privateKey()).build();
     }
 
     private void run() {
-        EventLoopGroup bossGroup = new NioEventLoopGroup();
-        EventLoopGroup workerGroup = new NioEventLoopGroup();
+        EventLoopGroup acceptorGroup = new NioEventLoopGroup(8);
+        EventLoopGroup clientGroup = new NioEventLoopGroup(8);
         ServerBootstrap serverBootstrap = new ServerBootstrap()
-                .group(bossGroup, workerGroup)
+                .group(acceptorGroup, clientGroup)
                 .channel(NioServerSocketChannel.class)
                 .childHandler(new TerminalChannelInitalizer(useSSL)).localAddress(port);
         try {
@@ -43,8 +50,8 @@ public class Server {
         } catch (InterruptedException e) {
             e.printStackTrace();
         } finally {
-            bossGroup.shutdownGracefully();
-            workerGroup.shutdownGracefully();
+            acceptorGroup.shutdownGracefully();
+            clientGroup.shutdownGracefully();
         }
     }
 }
