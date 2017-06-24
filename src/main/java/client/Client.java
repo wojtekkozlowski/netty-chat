@@ -1,6 +1,7 @@
 package client;
 
 import org.jpos.core.Configuration;
+import org.jpos.core.ConfigurationException;
 import org.jpos.core.SimpleConfiguration;
 import org.jpos.iso.ISOException;
 import org.jpos.iso.ISOMsg;
@@ -9,6 +10,7 @@ import org.jpos.iso.channel.XMLChannel;
 import org.jpos.iso.packager.XMLPackager;
 import org.jpos.util.Logger;
 import org.jpos.util.SimpleLogListener;
+import server.Server;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -19,9 +21,10 @@ import java.util.concurrent.TimeUnit;
 public class Client {
 
     private static final Logger LOGGER = new Logger();
-    private static final int timeframe = 2;
-    private static final int connections = 1000;
 
+    private static final int connections = 1000;
+    private static final int connectionSpread = 1;
+    private static final int echoSpread = 3;
 
     public static void main(String[] args) throws InterruptedException, IOException, ISOException {
         LOGGER.addListener(new SimpleLogListener(System.err));
@@ -30,65 +33,68 @@ public class Client {
     }
 
     Client() throws ISOException, InterruptedException, IOException {
-        ExecutorService es = Executors.newFixedThreadPool(connections);
+        ExecutorService executorService = Executors.newFixedThreadPool(connections);
         for (int i = 0; i < connections; i++) {
-            es.submit(() -> {
+            int finalI = i;
+            executorService.submit(() -> {
                 try {
-                    startChannel();
+                    startChannel(finalI);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    System.out.println(finalI + ": start channel error (" + e.getMessage() + ")");
                 }
             });
         }
-        es.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
+        executorService.awaitTermination(10000, TimeUnit.DAYS);
     }
 
-    private void startChannel() throws ISOException, IOException {
-        XMLChannel channel = new XMLChannel(new XMLPackager());
-        channel.setHost("localhost", 8000);
-        channel.setSocketFactory(new SunJSSESocketFactory());
-        channel.setConfiguration(clientConfiguration());
-
-        connectIfNotConnected(channel);
+    private void startChannel(int i) throws ISOException {
+        XMLChannel channel = new XMLChannel("localhost", 8000, new XMLPackager());
+        if(Server.useSSL) {
+            channel.setSocketFactory(new SunJSSESocketFactory());
+        }
+        try {
+            channel.setConfiguration(clientConfiguration());
+        } catch (ConfigurationException e) {
+            e.printStackTrace();
+        }
 
         while (true) {
             try {
-                tryToSleep();
+                connectIfNotConnected(channel, i);
+                tryToSleep(i, echoSpread);
                 channel.send(getIsoMsg());
-                channel.receive();
             } catch (Exception e) {
-                e.printStackTrace();
-                connectIfNotConnected(channel);
+                System.out.println(i + ": channel send error (" + e.getMessage() + ")");
+            }
+            try {
+                channel.receive();
+            } catch (IOException | ISOException e) {
+                System.out.println(i + ": channel read error (" + e.getMessage() + ")");
             }
         }
     }
 
-    private void tryToSleep() {
+    private void tryToSleep(int i, int echoTimeout) {
         try {
-            Thread.sleep(Double.valueOf(Math.random() * 1000 * timeframe).longValue());
+            Thread.sleep(Double.valueOf(Math.random() * 1000 * echoTimeout).longValue());
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            System.out.println(i + " couldn't sleep");
         }
     }
 
-    private void connectIfNotConnected(XMLChannel channel) {
+    private void connectIfNotConnected(XMLChannel channel, int i) {
         int conProbs = 0;
-        if (!channel.isConnected()) {
-            while (!channel.isConnected()) {
-                try {
-                    tryToSleep();
-                    channel.connect();
-                } catch (IOException e) {
-                    if (conProbs == 0) {
-                        System.out.println("couldn't connect, retrying");
-                        conProbs += 1;
-                    } else {
-                        System.out.println("couldn't connect, retrying: " + conProbs++);
-                    }
+        while (!channel.isConnected()) {
+            try {
+                tryToSleep(i, connectionSpread);
+                channel.connect();
+            } catch (IOException e) {
+                if (conProbs == 0) {
+                    System.out.println(i + ": couldn't connect, retrying (" + e.getMessage() + ")");
+                    conProbs += 1;
+                } else {
+                    System.out.println(i + ": couldn't connect, retrying: " + conProbs++ + "(" + e.getMessage() + ")");
                 }
-            }
-            if (conProbs > 0) {
-                System.out.println("finally connected after: " + conProbs + " attempts");
             }
         }
     }
@@ -100,8 +106,8 @@ public class Client {
         props.put("storepassword", "qwerty");
         props.put("keypassword", "qwerty");
         props.put("addEnabledCipherSuite", "SSL_RSA_WITH_3DES_EDE_CBC_SHA");
-        props.put("timeout", "2000");
-        props.put("connect-timeout", "2000");
+        props.put("timeout", "5000");
+        props.put("connect-timeout", "5000");
         return new SimpleConfiguration(props);
     }
 

@@ -9,18 +9,22 @@ import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 public class Server {
+
+    public static final Boolean useSSL = true;
+
+    static SslContext sslContext;
     private final int port;
-    public static SelfSignedCertificate selfSignedCertificate;
 
     public static void main(String[] args) throws Exception {
         Metrics.getInstance().addMetric(() -> "channels: "+ TerminalChannelHandler.channels.size());
-        Server.selfSignedCertificate = new SelfSignedCertificate();
         Server server = new Server(8000);
         server.run();
     }
 
     private Server(int port) throws Exception {
         this.port = port;
+        SelfSignedCertificate cert = new SelfSignedCertificate();
+        Server.sslContext = SslContextBuilder.forServer(cert.certificate(), cert.privateKey()).build();
     }
 
     private void run(){
@@ -39,6 +43,4 @@ public class Server {
             workerGroup.shutdownGracefully();
         }
     }
-
-
 }
