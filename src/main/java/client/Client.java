@@ -19,6 +19,9 @@ import java.util.concurrent.TimeUnit;
 public class Client {
 
     private static final Logger LOGGER = new Logger();
+    private static final int timeframe = 2;
+    private static final int connections = 1000;
+
 
     public static void main(String[] args) throws InterruptedException, IOException, ISOException {
         LOGGER.addListener(new SimpleLogListener(System.err));
@@ -27,8 +30,8 @@ public class Client {
     }
 
     Client() throws ISOException, InterruptedException, IOException {
-        ExecutorService es = Executors.newFixedThreadPool(10);
-        for (int i = 0; i < 10; i++) {
+        ExecutorService es = Executors.newFixedThreadPool(connections);
+        for (int i = 0; i < connections; i++) {
             es.submit(() -> {
                 try {
                     startChannel();
@@ -40,26 +43,53 @@ public class Client {
         es.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
     }
 
-    private void startChannel() throws IOException, ISOException, InterruptedException {
+    private void startChannel() throws ISOException, IOException {
         XMLChannel channel = new XMLChannel(new XMLPackager());
         channel.setHost("localhost", 8000);
         channel.setSocketFactory(new SunJSSESocketFactory());
         channel.setConfiguration(clientConfiguration());
 
-        while (!channel.isConnected()) {
-            try {
-                channel.connect();
-            } catch (IOException e) {
-                e.printStackTrace();
-                Thread.sleep(1000);
-            }
-        }
+        connectIfNotConnected(channel);
 
         while (true) {
-            channel.send(getIsoMsg());
-            ISOMsg receive = channel.receive();
-            System.out.println(receive);
-            Thread.sleep(1000);
+            try {
+                tryToSleep();
+                channel.send(getIsoMsg());
+                channel.receive();
+            } catch (Exception e) {
+                e.printStackTrace();
+                connectIfNotConnected(channel);
+            }
+        }
+    }
+
+    private void tryToSleep() {
+        try {
+            Thread.sleep(Double.valueOf(Math.random() * 1000 * timeframe).longValue());
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void connectIfNotConnected(XMLChannel channel) {
+        int conProbs = 0;
+        if (!channel.isConnected()) {
+            while (!channel.isConnected()) {
+                try {
+                    tryToSleep();
+                    channel.connect();
+                } catch (IOException e) {
+                    if (conProbs == 0) {
+                        System.out.println("couldn't connect, retrying");
+                        conProbs += 1;
+                    } else {
+                        System.out.println("couldn't connect, retrying: " + conProbs++);
+                    }
+                }
+            }
+            if (conProbs > 0) {
+                System.out.println("finally connected after: " + conProbs + " attempts");
+            }
         }
     }
 
