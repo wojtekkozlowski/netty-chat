@@ -17,24 +17,33 @@ public class Client {
 
     private static final Logger LOGGER = new Logger();
 
-    public static void main(String[] args) {
-        LOGGER.addListener(new SimpleLogListener(System.out));
+    public static void main(String[] args) throws InterruptedException, IOException, ISOException {
+        LOGGER.addListener(new SimpleLogListener(System.err));
         new Client();
     }
 
-    Client() {
-        try {
-            XMLChannel channel = new XMLChannel(new XMLPackager());
-            channel.setHost("localhost",8000);
+    Client() throws ISOException, InterruptedException, IOException {
+        XMLChannel channel = new XMLChannel(new XMLPackager());
+        channel.setHost("localhost", 8000);
             channel.setSocketFactory(new SunJSSESocketFactory());
-            channel.setConfiguration(clientConfiguration());
-            channel.connect();
-            channel.send(getIsoMsg());
-            channel.receive();
-            channel.disconnect();
-        } catch (IOException | ISOException e) {
-            e.printStackTrace();
+        channel.setConfiguration(clientConfiguration());
+        while(!channel.isConnected()) {
+            try {
+                channel.connect();
+            } catch (IOException e) {
+                e.printStackTrace();
+                Thread.sleep(1000);
+            }
         }
+
+        while(true){
+            channel.send(getIsoMsg());
+            ISOMsg receive = channel.receive();
+            System.out.println(receive);
+            Thread.sleep(1000);
+        }
+
+//        channel.disconnect();
     }
 
     private Configuration clientConfiguration() {
@@ -49,12 +58,16 @@ public class Client {
         return new SimpleConfiguration(props);
     }
 
-    private ISOMsg getIsoMsg() throws ISOException {
+    private ISOMsg getIsoMsg() {
         ISOMsg req = new ISOMsg();
-        req.setMTI("0800");
-        req.set (3, "000000");
-        req.set (41, "00000001");
-        req.set (70, "301");
+        try {
+            req.setMTI("0800");
+        } catch (ISOException e) {
+            e.printStackTrace();
+        }
+        req.set(3, "000003");
+        req.set(41, "00000041");
+        req.set(70, "301");
         return req;
     }
 }

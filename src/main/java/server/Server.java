@@ -12,9 +12,9 @@ import io.netty.handler.ssl.util.SelfSignedCertificate;
 import javax.net.ssl.SSLEngine;
 
 public class Server {
-    public static SSLEngine sslEngine;
+    static SSLEngine sslEngine;
     private final int port;
-    public static SslContext sslContext;
+    private static SslContext sslContext;
 
 
     public static void main(String[] args) throws Exception {
@@ -23,14 +23,7 @@ public class Server {
 
     public Server(int port) throws Exception {
         this.port = port;
-        ssl();
-    }
-
-    private void ssl() throws Exception {
-        final SelfSignedCertificate cert = new SelfSignedCertificate();
-        Server.sslContext = SslContextBuilder.forServer(cert.certificate(), cert.privateKey()).build();
-        Server.sslEngine = Server.sslContext.newEngine(ByteBufAllocator.DEFAULT);
-        sslEngine.setUseClientMode(false);
+        configureSSL();
     }
 
     public void run(){
@@ -45,8 +38,15 @@ public class Server {
         } catch (InterruptedException e) {
             e.printStackTrace();
         } finally {
-            bossGroup.shutdown();
-            workerGroup.shutdown();
+            bossGroup.shutdownGracefully();
+            workerGroup.shutdownGracefully();
         }
+    }
+
+    private void configureSSL() throws Exception {
+        final SelfSignedCertificate cert = new SelfSignedCertificate();
+        Server.sslContext = SslContextBuilder.forServer(cert.certificate(), cert.privateKey()).build();
+        Server.sslEngine = Server.sslContext.newEngine(ByteBufAllocator.DEFAULT);
+        sslEngine.setUseClientMode(false);
     }
 }
