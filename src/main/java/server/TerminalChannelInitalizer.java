@@ -12,10 +12,18 @@ import io.netty.handler.ssl.SslHandler;
 import javax.net.ssl.SSLEngine;
 
 public class TerminalChannelInitalizer extends ChannelInitializer<SocketChannel> {
+
+    private final Boolean useSSL;
+
+    TerminalChannelInitalizer(Boolean useSSL) {
+        super();
+        this.useSSL = useSSL;
+    }
+
     @Override
     public void initChannel(SocketChannel socketChannel) throws Exception {
         ChannelPipeline pipeline = socketChannel.pipeline();
-        if (Server.useSSL) {
+        if (useSSL) {
             pipeline.addLast("ssl", new SslHandler(getSslEngine()));
         }
         pipeline.addLast("framer", new XmlFrameDecoder(1048576));

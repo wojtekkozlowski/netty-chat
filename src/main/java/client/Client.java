@@ -10,7 +10,6 @@ import org.jpos.iso.channel.XMLChannel;
 import org.jpos.iso.packager.XMLPackager;
 import org.jpos.util.Logger;
 import org.jpos.util.SimpleLogListener;
-import server.Server;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -22,19 +21,48 @@ public class Client {
 
     private static final Logger LOGGER = new Logger();
 
-    private static final int connections = 2000;
-    private static final int connectionSpread = 2;
-    private static final int echoSpread = 5;
+    private int connections;
+    private int connectionSpread;
+    private int echoSpread;
+    private final Boolean useSSL;
 
     public static void main(String[] args) throws InterruptedException, IOException, ISOException {
         LOGGER.addListener(new SimpleLogListener(System.err));
         System.setProperty("https.protocols", "TLSv1");
-        new Client();
+        Boolean useSSL;
+        int connections;
+        int connectionSpread;
+        int echoSpread;
+        if (args.length == 4){
+            useSSL = Boolean.valueOf(args[0]);
+            connections = Integer.valueOf(args[1]);
+            connectionSpread = Integer.valueOf(args[2]);
+            echoSpread = Integer.valueOf(args[3]);
+        } else {
+            useSSL = true;
+            connections = 1000;
+            connectionSpread = 1000;
+            echoSpread = 3000;
+            System.out.println("Usage:");
+            System.out.println("<use SSL? true|false> <concurrent_connections> <connect_spread_in_millis> <echo_spread_in_millis>");
+            System.out.println("using defaults");
+        }
+        System.out.println("\tuse SSL:\t\t" + useSSL);
+        System.out.println("\tconcurrent_connections:\t" + connections);
+        System.out.println("\tconnect_spread_in_sec:\t" +connectionSpread);
+        System.out.println("\techo_spread_in_sec:\t" + echoSpread);
+        System.out.println("\n");
+
+        new Client(useSSL,connections,connectionSpread,echoSpread);
     }
 
-    Client() throws ISOException, InterruptedException, IOException {
-        ExecutorService executorService = Executors.newFixedThreadPool(connections);
-        for (int i = 0; i < connections; i++) {
+    Client(Boolean useSSL, int connections, int connectionSpread, int echoSpread) throws ISOException, InterruptedException, IOException {
+        this.useSSL = useSSL;
+        this.connections = connections;
+        this.connectionSpread = connectionSpread;
+        this.echoSpread = echoSpread;
+        ExecutorService executorService = Executors.newFixedThreadPool(this.connections);
+        for (int i = 0; i < this.connections; i++) {
             int finalI = i;
             executorService.submit(() -> {
                 try {
@@ -49,7 +77,7 @@ public class Client {
 
     private void startChannel(int i) throws ISOException {
         XMLChannel channel = new XMLChannel("localhost", 8000, new XMLPackager());
-        if(Server.useSSL) {
+        if(useSSL) {
             channel.setSocketFactory(new SunJSSESocketFactory());
         }
         try {
@@ -76,7 +104,7 @@ public class Client {
 
     private void tryToSleep(int i, int echoTimeout) {
         try {
-            Thread.sleep(Double.valueOf(Math.random() * 1000 * echoTimeout).longValue());
+            Thread.sleep(Double.valueOf(Math.random()  * echoTimeout).longValue());
         } catch (InterruptedException e) {
             System.out.println(i + " couldn't sleep");
         }

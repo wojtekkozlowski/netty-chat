@@ -10,31 +10,34 @@ import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 public class Server {
 
-    public static final Boolean useSSL = false;
+    public Boolean useSSL;
 
     static SslContext sslContext;
     private final int port;
 
     public static void main(String[] args) throws Exception {
-        System.out.println("\n\nUse SSL: " + useSSL + "\n\n");
-        Metrics.getInstance().addMetric(() -> "channels: "+ TerminalChannelHandler.channels.size());
-        Server server = new Server(8000);
+        Metrics.getInstance().addMetric(() -> "channels: " + TerminalChannelHandler.channels.size());
+        // SSL
+        Boolean useSSL = args.length > 0 ? Boolean.valueOf(args[0]) : true;
+        Server server = new Server(8000, useSSL);
         server.run();
     }
 
-    private Server(int port) throws Exception {
+    private Server(int port, Boolean useSSL) throws Exception {
+        this.useSSL = useSSL;
+        System.out.println("\n\nUse SSL: " + this.useSSL + "\n\n");
         this.port = port;
         SelfSignedCertificate cert = new SelfSignedCertificate();
         Server.sslContext = SslContextBuilder.forServer(cert.certificate(), cert.privateKey()).build();
     }
 
-    private void run(){
+    private void run() {
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         ServerBootstrap serverBootstrap = new ServerBootstrap()
                 .group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)
-                .childHandler(new TerminalChannelInitalizer()).localAddress(port);
+                .childHandler(new TerminalChannelInitalizer(useSSL)).localAddress(port);
         try {
             serverBootstrap.bind().sync().channel().closeFuture().sync();
         } catch (InterruptedException e) {
