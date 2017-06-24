@@ -8,11 +8,9 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 
-
 public class Server {
     private final int port;
     public static SslContext sslContext;
-
 
     public static void main(String[] args) throws Exception {
         new Server(8000).run();
@@ -29,7 +27,7 @@ public class Server {
         ServerBootstrap serverBootstrap = new ServerBootstrap()
                 .group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)
-                .childHandler(new ChatServerInitalizer()).localAddress(port);
+                .childHandler(new TerminalChannelInitalizer()).localAddress(port);
         try {
             serverBootstrap.bind().sync().channel().closeFuture().sync();
         } catch (InterruptedException e) {

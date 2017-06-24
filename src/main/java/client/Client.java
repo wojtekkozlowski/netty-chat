@@ -38,7 +38,6 @@ public class Client {
             });
         }
         es.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
-//        startChannel();
     }
 
     private void startChannel() throws IOException, ISOException, InterruptedException {

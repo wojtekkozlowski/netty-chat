@@ -15,7 +15,7 @@ import org.jpos.iso.packager.XMLPackager;
 
 import java.util.List;
 
-public class ChatServerHandler extends SimpleChannelInboundHandler<String> {
+public class TerminalChannelHandler extends SimpleChannelInboundHandler<String> {
 
     public static final ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 

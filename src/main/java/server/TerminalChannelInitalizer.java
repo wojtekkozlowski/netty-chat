@@ -11,7 +11,7 @@ import io.netty.handler.ssl.SslHandler;
 
 import javax.net.ssl.SSLEngine;
 
-public class ChatServerInitalizer extends ChannelInitializer<SocketChannel> {
+public class TerminalChannelInitalizer extends ChannelInitializer<SocketChannel> {
     @Override
     public void initChannel(SocketChannel socketChannel) throws Exception {
         ChannelPipeline pipeline = socketChannel.pipeline();
@@ -21,6 +21,6 @@ public class ChatServerInitalizer extends ChannelInitializer<SocketChannel> {
         pipeline.addLast("framer", new XmlFrameDecoder(1048576));
         pipeline.addLast("decoder", new StringDecoder());
         pipeline.addLast("encoder", new StringEncoder());
-        pipeline.addLast("handler", new ChatServerHandler());
+        pipeline.addLast("handler", new TerminalChannelHandler());
     }
 }
