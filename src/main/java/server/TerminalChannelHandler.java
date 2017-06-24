@@ -1,19 +1,11 @@
 package server;
 
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
-import io.netty.util.CharsetUtil;
 import io.netty.util.concurrent.GlobalEventExecutor;
-import org.jpos.iso.ISOMsg;
-import org.jpos.iso.ISOStringFieldPackager;
-import org.jpos.iso.packager.GenericPackager;
-import org.jpos.iso.packager.XMLPackager;
-
-import java.util.List;
 
 public class TerminalChannelHandler extends SimpleChannelInboundHandler<String> {
 
