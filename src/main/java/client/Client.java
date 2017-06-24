@@ -22,9 +22,9 @@ public class Client {
 
     private static final Logger LOGGER = new Logger();
 
-    private static final int connections = 1000;
-    private static final int connectionSpread = 1;
-    private static final int echoSpread = 3;
+    private static final int connections = 2000;
+    private static final int connectionSpread = 2;
+    private static final int echoSpread = 5;
 
     public static void main(String[] args) throws InterruptedException, IOException, ISOException {
         LOGGER.addListener(new SimpleLogListener(System.err));
@@ -93,7 +93,7 @@ public class Client {
                     System.out.println(i + ": couldn't connect, retrying (" + e.getMessage() + ")");
                     conProbs += 1;
                 } else {
-                    System.out.println(i + ": couldn't connect, retrying: " + conProbs++ + "(" + e.getMessage() + ")");
+                    System.out.println(i + ": couldn't connect, retrying: " + conProbs++ + ", (" + e.getMessage() + ")");
                 }
             }
         }

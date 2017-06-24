@@ -10,7 +10,7 @@ import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 public class Server {
 
-    public static final Boolean useSSL = true;
+    public static final Boolean useSSL = false;
 
     static SslContext sslContext;
     private final int port;
