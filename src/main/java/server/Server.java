@@ -9,12 +9,7 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
-import java.io.*;
-import java.nio.file.Files;
-import java.security.KeyStore;
 
 public class Server {
     public static SSLEngine sslEngine;

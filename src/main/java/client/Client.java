@@ -1,49 +1,60 @@
 package client;
 
-import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.ssl.SslContextBuilder;
+import org.jpos.core.Configuration;
+import org.jpos.core.SimpleConfiguration;
+import org.jpos.iso.ISOException;
+import org.jpos.iso.ISOMsg;
+import org.jpos.iso.SunJSSESocketFactory;
+import org.jpos.iso.channel.XMLChannel;
+import org.jpos.iso.packager.XMLPackager;
+import org.jpos.util.Logger;
+import org.jpos.util.SimpleLogListener;
 
-import javax.net.ssl.SSLEngine;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.util.Properties;
 
 public class Client {
 
-    private final String host;
-    private final int port;
+    private static final Logger LOGGER = new Logger();
 
     public static void main(String[] args) {
-        new Client("localhost", 8000).run();
+        LOGGER.addListener(new SimpleLogListener(System.out));
+        new Client();
     }
 
-    public Client(String host, int port) {
-        this.host = host;
-        this.port = port;
-    }
-
-    public void run() {
-        EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
-        Bootstrap bootstrap = new Bootstrap()
-                .group(eventLoopGroup)
-                .channel(NioSocketChannel.class)
-                .handler(new ChatClientInitializer()).remoteAddress(host, port);
-
-        Channel channel = null;
+    Client() {
         try {
-            channel = bootstrap.connect().sync().channel();
-            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-            while (true) {
-                channel.writeAndFlush(br.readLine() + "\r\n");
-            }
-        } catch (IOException | InterruptedException e) {
+            XMLChannel channel = new XMLChannel(new XMLPackager());
+            channel.setHost("localhost",8000);
+            channel.setSocketFactory(new SunJSSESocketFactory());
+            channel.setConfiguration(clientConfiguration());
+            channel.connect();
+            channel.send(getIsoMsg());
+            channel.receive();
+            channel.disconnect();
+        } catch (IOException | ISOException e) {
             e.printStackTrace();
-        } finally {
-            eventLoopGroup.shutdownGracefully();
         }
+    }
+
+    private Configuration clientConfiguration() {
+        Properties props = new Properties();
+        props.put("keystore", "src/main/resources/keystore.jks");
+        props.put("serverauth", "false");
+        props.put("storepassword", "qwerty");
+        props.put("keypassword", "qwerty");
+        props.put("addEnabledCipherSuite", "SSL_RSA_WITH_3DES_EDE_CBC_SHA");
+        props.put("timeout", "1000");
+        props.put("connect-timeout", "1000");
+        return new SimpleConfiguration(props);
+    }
+
+    private ISOMsg getIsoMsg() throws ISOException {
+        ISOMsg req = new ISOMsg();
+        req.setMTI("0800");
+        req.set (3, "000000");
+        req.set (41, "00000001");
+        req.set (70, "301");
+        return req;
     }
 }

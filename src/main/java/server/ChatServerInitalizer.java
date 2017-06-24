@@ -1,6 +1,5 @@
 package server;
 
-import client.ChatClientHandler;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
@@ -10,9 +9,6 @@ import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 import io.netty.handler.ssl.SslHandler;
 
-/**
- * Created by wojtek on 14/05/2017.
- */
 public class ChatServerInitalizer extends ChannelInitializer<SocketChannel> {
     @Override
     public void initChannel(SocketChannel socketChannel) throws Exception {
