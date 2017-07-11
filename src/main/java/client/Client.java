@@ -21,6 +21,8 @@ public class Client {
 
     private static final Logger LOGGER = new Logger();
 
+    private String host;
+    private int port;
     private int connections;
     private int connectionSpread;
     private int echoSpread;
@@ -29,23 +31,30 @@ public class Client {
     public static void main(String[] args) throws InterruptedException, IOException, ISOException {
         LOGGER.addListener(new SimpleLogListener(System.err));
         System.setProperty("https.protocols", "TLSv1");
+        String host;
+        int port;
         Boolean useSSL;
         int connections;
         int connectionSpread;
         int echoSpread;
-        if (args.length == 4){
-            useSSL = Boolean.valueOf(args[0]);
-            connections = Integer.valueOf(args[1]);
-            connectionSpread = Integer.valueOf(args[2]);
-            echoSpread = Integer.valueOf(args[3]);
+        if (args.length == 6){
+            host = args[0];
+            port = Integer.valueOf(args[1]);
+            useSSL = Boolean.valueOf(args[2]);
+            connections = Integer.valueOf(args[3]);
+            connectionSpread = Integer.valueOf(args[4]);
+            echoSpread = Integer.valueOf(args[5]);
         } else {
+            host = "localhost";
+            port = 8000;
             useSSL = true;
             connections = 1000;
             connectionSpread = 1000;
             echoSpread = 3000;
             System.out.println("Usage:");
-            System.out.println("<use SSL? true|false> <concurrent_connections> <connect_spread_in_millis> <echo_spread_in_millis>");
-            System.out.println("using defaults");
+            System.out.println("<host> <port> <use SSL? true|false> <concurrent_connections> <connect_spread_in_millis> <echo_spread_in_millis>");
+            System.out.println("using defaults:");
+            System.out.println("\n");
         }
         System.out.println("\tuse SSL:\t\t" + useSSL);
         System.out.println("\tconcurrent_connections:\t" + connections);
@@ -53,10 +62,12 @@ public class Client {
         System.out.println("\techo_spread_in_sec:\t" + echoSpread);
         System.out.println("\n");
 
-        new Client(useSSL,connections,connectionSpread,echoSpread);
+        new Client(host, port, useSSL, connections, connectionSpread, echoSpread);
     }
 
-    Client(Boolean useSSL, int connections, int connectionSpread, int echoSpread) throws ISOException, InterruptedException, IOException {
+    Client(String host, int port, Boolean useSSL, int connections, int connectionSpread, int echoSpread) throws ISOException, InterruptedException, IOException {
+        this.host = host;
+        this.port = port;
         this.useSSL = useSSL;
         this.connections = connections;
         this.connectionSpread = connectionSpread;
@@ -76,7 +87,7 @@ public class Client {
     }
 
     private void startChannel(int i) throws ISOException {
-        XMLChannel channel = new XMLChannel("localhost", 8000, new XMLPackager());
+        XMLChannel channel = new XMLChannel(host, port, new XMLPackager());
         if(useSSL) {
             channel.setSocketFactory(new SunJSSESocketFactory());
         }

@@ -26,8 +26,7 @@ public class Metrics {
     }
 
     private Metrics() {
-
-        addMetric(() -> "cpu: " + Math.round(operatingSystemMXBean.getSystemLoadAverage())+"%");
+        // addMetric(() -> "cpu: " + Math.round(operatingSystemMXBean.getSystemLoadAverage())+"%");
         e.scheduleWithFixedDelay(() -> System.out.println((
                 suppliers.stream()
                         .map(Supplier::get)

@@ -18,21 +18,27 @@ public class Server {
     public static void main(String[] args) throws Exception {
         Metrics.getInstance().addMetric(() -> "channels: " + TerminalChannelHandler.channels.size());
         Boolean useSSL;
-        if (args.length > 0){
+        int port;
+        if (args.length == 2){
             useSSL =  Boolean.valueOf(args[0]);
+            port =  Integer.valueOf(args[1]);
         } else {
             System.out.println("Usage:");
-            System.out.println("<use SSL? true|false>");
+            System.out.println("<use SSL? true|false> <port>");
+            System.out.println("using defaults:");
+            port = 8000;
             useSSL = true;
         }
-        System.out.println("\n\nUse SSL: " + useSSL + "\n\n");
-        Server server = new Server(8000, useSSL);
+        System.out.println("\n");
+        System.out.println("\tUse SSL: " + useSSL);
+        System.out.println("\tport: " + port);
+        System.out.println("\n");
+        Server server = new Server(port, useSSL);
         server.run();
     }
 
     private Server(int port, Boolean useSSL) throws Exception {
         this.useSSL = useSSL;
-
         this.port = port;
         SelfSignedCertificate cert = new SelfSignedCertificate();
         Server.sslContext = SslContextBuilder.forServer(cert.certificate(), cert.privateKey()).build();
