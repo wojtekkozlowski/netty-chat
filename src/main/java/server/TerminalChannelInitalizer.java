@@ -1,5 +1,7 @@
 package server;
 
+import javax.net.ssl.SSLEngine;
+
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
@@ -8,8 +10,6 @@ import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 import io.netty.handler.codec.xml.XmlFrameDecoder;
 import io.netty.handler.ssl.SslHandler;
-
-import javax.net.ssl.SSLEngine;
 
 public class TerminalChannelInitalizer extends ChannelInitializer<SocketChannel> {
 

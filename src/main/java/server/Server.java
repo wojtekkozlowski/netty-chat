@@ -16,7 +16,7 @@ public class Server {
     private final int port;
 
     public static void main(String[] args) throws Exception {
-        Metrics.getInstance().addMetric(() -> "channels: " + TerminalChannelHandler.channels.size());
+        Metrics.getInstance().addMetric(() -> "" + TerminalChannelHandler.channels.size());
         Boolean useSSL;
         int port;
         if (args.length == 2){

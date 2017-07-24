@@ -21,16 +21,15 @@ public class Metrics {
         return instance;
     }
 
-    void addMetric(Supplier<String> supplier){
+    void addMetric(Supplier<String> supplier) {
         suppliers.add(supplier);
     }
 
     private Metrics() {
-        // addMetric(() -> "cpu: " + Math.round(operatingSystemMXBean.getSystemLoadAverage())+"%");
         e.scheduleWithFixedDelay(() -> System.out.println((
-                suppliers.stream()
-                        .map(Supplier::get)
-                        .collect(Collectors.joining(", "))))
-                ,0,500, TimeUnit.MILLISECONDS);
+                        suppliers.stream()
+                                .map(Supplier::get)
+                                .collect(Collectors.joining(", "))))
+                , 0, 250, TimeUnit.MILLISECONDS);
     }
 }

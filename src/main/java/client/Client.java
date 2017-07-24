@@ -12,6 +12,7 @@ import org.jpos.util.Logger;
 import org.jpos.util.SimpleLogListener;
 
 import java.io.IOException;
+import java.net.SocketException;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -37,7 +38,7 @@ public class Client {
         int connections;
         int connectionSpread;
         int echoSpread;
-        if (args.length == 6){
+        if (args.length == 6) {
             host = args[0];
             port = Integer.valueOf(args[1]);
             useSSL = Boolean.valueOf(args[2]);
@@ -58,8 +59,10 @@ public class Client {
         }
         System.out.println("\tuse SSL:\t\t" + useSSL);
         System.out.println("\tconcurrent_connections:\t" + connections);
-        System.out.println("\tconnect_spread_in_sec:\t" +connectionSpread);
+        System.out.println("\tconnect_spread_in_sec:\t" + connectionSpread);
         System.out.println("\techo_spread_in_sec:\t" + echoSpread);
+        System.out.println("\tconnections/sec:\t" + ((double) connections / connectionSpread) * 1000);
+        System.out.println("\techos/sec:\t\t" + ((double) connections / echoSpread) * 1000);
         System.out.println("\n");
 
         new Client(host, port, useSSL, connections, connectionSpread, echoSpread);
@@ -88,12 +91,13 @@ public class Client {
 
     private void startChannel(int i) throws ISOException {
         XMLChannel channel = new XMLChannel(host, port, new XMLPackager());
-        if(useSSL) {
+        if (useSSL) {
             channel.setSocketFactory(new SunJSSESocketFactory());
         }
         try {
+            channel.setTimeout(10000);
             channel.setConfiguration(clientConfiguration());
-        } catch (ConfigurationException e) {
+        } catch (ConfigurationException | SocketException e) {
             e.printStackTrace();
         }
 
@@ -115,7 +119,7 @@ public class Client {
 
     private void tryToSleep(int i, int echoTimeout) {
         try {
-            Thread.sleep(Double.valueOf(Math.random()  * echoTimeout).longValue());
+            Thread.sleep(Double.valueOf(Math.random() * echoTimeout).longValue());
         } catch (InterruptedException e) {
             System.out.println(i + " couldn't sleep");
         }
