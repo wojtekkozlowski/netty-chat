@@ -1,7 +1,5 @@
 package server;
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.OperatingSystemMXBean;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -12,7 +10,6 @@ import java.util.stream.Collectors;
 
 public class Metrics {
     private ScheduledExecutorService e = Executors.newSingleThreadScheduledExecutor();
-    private final OperatingSystemMXBean operatingSystemMXBean = ManagementFactory.getOperatingSystemMXBean();
     private List<Supplier<String>> suppliers = new ArrayList<>();
 
     private static final Metrics instance = new Metrics();

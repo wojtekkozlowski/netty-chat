@@ -27,6 +27,6 @@ public class TerminalChannelHandler extends SimpleChannelInboundHandler<String> 
     protected void channelRead0(ChannelHandlerContext ctx, String msg) throws Exception {
         Channel incoming = ctx.channel();
         String s = msg.replaceFirst("0800", "0810");
-        incoming.writeAndFlush(s+"\n");
+        incoming.writeAndFlush(s + "\n");
     }
 }
