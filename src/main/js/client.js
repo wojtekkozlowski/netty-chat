@@ -3,7 +3,7 @@ var fs = require('fs');
 var tls = require('tls');
 
 var tlsOptions = {
-    host: '192.168.0.236',
+    host: 'localhost',
     key: fs.readFileSync('../resources/keystore.pem'),
     requestCert: true,
     rejectUnauthorized: false,
@@ -12,13 +12,25 @@ var tlsOptions = {
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
+var args = process.argv.slice(2);
+
 var clients = [];
 
-for (var i = 0; i < 10000; i++) {
+var cps = args[0];
+var duration = args[1];
+
+var connections = (cps*duration);
+var connsSpread = args[1] * 1000;
+
+console.log("new connections/s: " + cps);
+console.log("duration: " + duration);
+console.log("total: "+ connections)
+
+for (var i = 0; i < connections; i++) {
     setTimeout(function () {
         // clients.push(createAndStartClient())
         clients.push(createAndStartSSLClient())
-    }, (Math.random() * 5000) + 1000);
+    }, (Math.random() * connsSpread) + 1000);
 }
 
 function createAndStartSSLClient() {
@@ -51,7 +63,7 @@ function createAndStartSSLClient() {
 
 function createAndStartClient() {
     var client = new net.Socket();
-    client.connect(8000, '192.168.0.236', function () {
+    client.connect(8000, '52.35.61.237', function () {
         console.log('Connected');
         client.write('<hello>0800</hello>');
     });
