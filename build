@@ -1,0 +1,3 @@
+#!/bin/bash
+mvn clean compile assembly:single -DmainClass=server.Server -DfinalName=server
+mvn compile assembly:single -DmainClass=client.Client -DfinalName=client

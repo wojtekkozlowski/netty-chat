@@ -14,6 +14,9 @@ import javax.swing.text.html.Option;
 public class Metrics {
     private ScheduledExecutorService e = Executors.newSingleThreadScheduledExecutor();
     private List<Supplier<Optional<String>>> suppliers = new ArrayList<>();
+    int expectedClients;
+    double startTime;
+    boolean allClientsConnected;
 
     private static final Metrics instance = new Metrics();
 

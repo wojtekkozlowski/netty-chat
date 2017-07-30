@@ -20,50 +20,33 @@ public class Server {
 
     static SslContext sslContext;
     private final int port;
-    private static List<Integer> last4 = new ArrayList<>();
-    private static Double previousSum = 0d;
+    private static List<Integer> last4Connections = new ArrayList<>();
+    private static List<Long> last4Messages = new ArrayList<>();
+    private static Double previousConnectionsSum = 0d;
+    private static Double previousMessagesSum = 0d;
+
 
     public static void main(String[] args) throws Exception {
         Boolean useSSL;
         int port;
+        int expectedClients;
 
-        if (args.length == 2) {
+        if (args.length == 3) {
             useSSL = Boolean.valueOf(args[0]);
             port = Integer.valueOf(args[1]);
+            expectedClients = Integer.valueOf(args[2]);
         } else {
             System.out.println("Usage:");
-            System.out.println("<use SSL? true|false> <port>");
-            System.out.println("using defaults:");
+            System.out.println("  <use SSL? true|false> <port> <expected clients>");
+            System.out.println("  using defaults:");
             port = 8000;
+            expectedClients = -1;
             useSSL = true;
         }
-        System.out.println("\n");
         System.out.println("\tUse SSL: " + useSSL);
         System.out.println("\tport: " + port);
-        System.out.println("\n");
-        addMetric();
-        new Server(port, useSSL).run();
-    }
-
-    private static void addMetric() {
-
-        System.out.println("cpus: " + Math.max(1, SystemPropertyUtil.getInt("io.netty.eventLoopThreads", NettyRuntime.availableProcessors() * 2)));
-
-        System.out.println("connections, rate");
-        Metrics.getInstance().addMetric(() -> {
-            if (Server.last4.size() < 4) {
-                Server.last4.add(TerminalChannelHandler.channels.size());
-                return Optional.of("" + TerminalChannelHandler.channels.size());
-            } else {
-                double currentSum = last4.parallelStream().mapToDouble(d -> d).sum();
-                double currentRate = (currentSum - previousSum) / 4;
-
-                String s = "" + TerminalChannelHandler.channels.size() + ", " + currentRate;
-                last4.clear();
-                previousSum = currentSum;
-                return Optional.of(s);
-            }
-        });
+        addMetric(expectedClients);
+        new Server(port, useSSL).startBootstrap();
     }
 
     private Server(int port, Boolean useSSL) throws Exception {
@@ -73,8 +56,8 @@ public class Server {
         Server.sslContext = SslContextBuilder.forServer(cert.certificate(), cert.privateKey()).build();
     }
 
-    private void run() {
-        EventLoopGroup acceptorGroup = new NioEventLoopGroup();
+    private void startBootstrap() {
+        EventLoopGroup acceptorGroup = new NioEventLoopGroup(1);
         EventLoopGroup clientGroup = new NioEventLoopGroup();
         ServerBootstrap serverBootstrap = new ServerBootstrap()
                 .group(acceptorGroup, clientGroup)
@@ -88,5 +71,53 @@ public class Server {
             acceptorGroup.shutdownGracefully();
             clientGroup.shutdownGracefully();
         }
+    }
+
+    private static void addMetric(int expectedClients) {
+        System.out.println("cpus: " + Math.max(1, SystemPropertyUtil.getInt("io.netty.eventLoopThreads", NettyRuntime.availableProcessors() * 2)));
+        System.out.println("connections, new connections/s, messages/s");
+        Metrics metrics = Metrics.getInstance();
+        metrics.expectedClients = expectedClients;
+        metrics.addMetric(() -> {
+            int connections = TerminalChannelHandler.channels.size();
+            if (metrics.expectedClients != -1) {
+                if (!metrics.allClientsConnected) {
+                    if (connections == metrics.expectedClients) {
+                        double duration = System.currentTimeMillis() - metrics.startTime;
+                        double rate = connections / (duration / 1000);
+                        rate = Math.round(rate * 10) / 10;
+                        System.out.println(">> Connected all " + connections + " clients, rate: " + rate + "/s");
+                        metrics.allClientsConnected = true;
+                    } else if (connections > 0 && metrics.startTime == 0) {
+                        metrics.startTime = System.currentTimeMillis();
+                        System.out.println(">> Starting timer");
+                    } else if (connections == 0 && metrics.allClientsConnected) {
+                        metrics.allClientsConnected = false;
+                    }
+                }
+            }
+
+            if (Server.last4Connections.size() < 3) {
+                Server.last4Connections.add(connections);
+                Server.last4Messages.add(TerminalChannelHandler.msgCounter.sum());
+                return Optional.of("" + connections);
+            } else {
+                double currentconnectionsSum = last4Connections.parallelStream().mapToDouble(d -> d).sum();
+                double currentconnectionsRate = (currentconnectionsSum - previousConnectionsSum) / 3;
+                currentconnectionsRate = Math.round(currentconnectionsRate * 10) / 10;
+
+                double messagesSum = last4Messages.parallelStream().mapToDouble(d -> d).sum();
+                double messagesRate = (messagesSum - previousMessagesSum) / 3;
+                messagesRate = Math.round(messagesRate * 10) / 10;
+
+                String s = "" + connections + ", " + currentconnectionsRate + ", " + messagesRate;
+                last4Connections.clear();
+                last4Messages.clear();
+                previousConnectionsSum = currentconnectionsSum;
+                previousMessagesSum = 0d;
+                TerminalChannelHandler.msgCounter.reset();
+                return Optional.of(s);
+            }
+        });
     }
 }

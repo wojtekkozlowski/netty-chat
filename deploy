@@ -1,0 +1,14 @@
+#!/bin/bash
+echo "--- Building ---"
+./build
+pwd=`pwd`
+current_dir=`basename $pwd`
+tar -cf /tmp/netty-chat.tar "../"$current_dir
+
+echo "--- Copy and untar ---"
+scp /tmp/netty-chat.tar agnes:/tmp
+ssh agnes "cd /tmp; tar -xf netty-chat.tar"
+
+echo "--- Copy and untar ---"
+scp /tmp/netty-chat.tar chalmers:/tmp
+ssh chalmers "cd /tmp; tar -xf netty-chat.tar"
