@@ -1,9 +1,15 @@
 package client;
 
+import java.io.IOException;
+import java.net.SocketException;
+import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 import org.jpos.core.Configuration;
 import org.jpos.core.ConfigurationException;
 import org.jpos.core.SimpleConfiguration;
-import org.jpos.iso.Channel;
 import org.jpos.iso.ISOException;
 import org.jpos.iso.ISOMsg;
 import org.jpos.iso.SunJSSESocketFactory;
@@ -11,14 +17,6 @@ import org.jpos.iso.channel.XMLChannel;
 import org.jpos.iso.packager.XMLPackager;
 import org.jpos.util.Logger;
 import org.jpos.util.SimpleLogListener;
-
-import java.io.IOException;
-import java.net.SocketException;
-import java.util.Properties;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public class Client {
 
@@ -78,7 +76,7 @@ public class Client {
         new Client(host, port, useSSL, connections, connectionSpread, echoSpread, channelTimeout);
     }
 
-    Client(String host, int port, Boolean useSSL, int connections, int connectionSpread, int echoSpread, int channelTimeout) throws ISOException, InterruptedException, IOException {
+    private Client(String host, int port, Boolean useSSL, int connections, int connectionSpread, int echoSpread, int channelTimeout) throws ISOException, InterruptedException, IOException {
         this.host = host;
         this.port = port;
         this.useSSL = useSSL;
@@ -116,7 +114,7 @@ public class Client {
             long start = 0;
             try {
                 connectIfNotConnected(channel, i);
-                tryToSleep(i, echoSpread);
+                tryToSleep(i);
                 start = System.nanoTime();
                 channel.send(getIsoMsg());
             } catch (Throwable e) {
@@ -144,7 +142,7 @@ public class Client {
 
     private void reconnect(XMLChannel channel) throws Exception {
         channel.disconnect();
-        tryToSleep(-1, 5000);
+        tryToSleep(-1);
         executorService.submit(() -> {
             try {
                 startChannel(-1);
@@ -155,9 +153,9 @@ public class Client {
 
     }
 
-    private void tryToSleep(int i, int echoTimeout) {
+    private void tryToSleep(int i) {
         try {
-            Thread.sleep(Double.valueOf(Math.random() * echoTimeout).longValue());
+            Thread.sleep(Double.valueOf(Math.random() * echoSpread).longValue());
         } catch (InterruptedException e) {
             System.out.println(i + " couldn't sleep");
         }
@@ -167,7 +165,7 @@ public class Client {
         int conProbs = 0;
         while (!channel.isConnected()) {
             try {
-                tryToSleep(i, connectionSpread);
+                tryToSleep(i);
                 channel.connect();
             } catch (IOException e) {
                 if (conProbs == 0) {
