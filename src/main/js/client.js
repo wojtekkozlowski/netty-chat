@@ -2,56 +2,63 @@ var net = require('net');
 var fs = require('fs');
 var tls = require('tls');
 
-var tlsOptions = {
-    host: 'localhost',
-    key: fs.readFileSync('../resources/keystore.pem'),
-    requestCert: true,
-    rejectUnauthorized: false,
-    passphrase: "qwerty"
-};
-
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 var args = process.argv.slice(2);
 
 var clients = [];
 
-var cps = args[0];
-var duration = args[1];
+var host = args[0] || 'localhost';
+var useSSL = args[1] == 'true';
+var port = args[2] || 8000;
+var totalConnections = args[3];
+var cps = args[4];
 
-var connections = (cps*duration);
-var connsSpread = args[1] * 1000;
+console.log(useSSL)
 
-console.log("new connections/s: " + cps);
-console.log("duration: " + duration);
-console.log("total: "+ connections)
+var connsSpread = totalConnections / cps;
 
-for (var i = 0; i < connections; i++) {
+var tlsOptions = {
+    host: host,
+    key: fs.readFileSync('../resources/keystore.pem'),
+    requestCert: true,
+    rejectUnauthorized: false,
+    passphrase: "qwerty"
+};
+console.log(tlsOptions)
+
+console.log("total connections: " + totalConnections);
+console.log("rate: "+ cps + "/s")
+console.log("duration: " + connsSpread + "s");
+
+for (var i = 0; i < totalConnections; i++) {
     setTimeout(function () {
-        // clients.push(createAndStartClient())
-        clients.push(createAndStartSSLClient())
-    }, (Math.random() * connsSpread) + 1000);
+        if(useSSL){
+            clients.push(createAndStartSSLClient())
+        } else {
+            clients.push(createAndStartClient())    
+        }
+    }, (Math.random() * 1000 * connsSpread) + 1000);
 }
 
 function createAndStartSSLClient() {
-    var client = tls.connect(8000, tlsOptions, function () {
+    var client = tls.connect(port, tlsOptions, function () {
         // console.log("new client connected")
         client.write('<hello>0800</hello>');
     });
 
     client.on('data', function (data) {
-        // console.log('Received: ' + String(data).trim());
         setTimeout(function () {
             client.write('<hello>0800</hello>');
         }, Math.random() * 1000);
     });
 
-    client.on('end', function () {
+    // client.on('end', function () {
         // console.log('end')
-    });
-    client.on('close', function () {
+    // });
+    // client.on('close', function () {
         // console.log('close');
-    });
+    // });
 
     client.setTimeout(10000, function () {
         console.log('timeout and reconnect')
@@ -63,16 +70,16 @@ function createAndStartSSLClient() {
 
 function createAndStartClient() {
     var client = new net.Socket();
-    client.connect(8000, '52.35.61.237', function () {
-        console.log('Connected');
+    client.connect(port, tlsOptions.host, function () {
+        // console.log('Connected');
         client.write('<hello>0800</hello>');
     });
     client.on('data', function (data) {
-        console.log('Received: ' + String(data).trim());
+        // console.log('Received: ' + String(data).trim());
         // client.destroy(); // kill client after server's response
         setTimeout(function () {
             client.write('<hello>0800</hello>');
-        }, Math.random() * 1000);
+        }, Math.random() * 1000 * connsSpread);
     });
     client.on('close', function () {
         console.log('Connection closed');
