@@ -10,6 +10,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslProvider;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.netty.util.NettyRuntime;
 import io.netty.util.internal.SystemPropertyUtil;
@@ -53,7 +54,7 @@ public class Server {
         this.useSSL = useSSL;
         this.port = port;
         SelfSignedCertificate cert = new SelfSignedCertificate();
-        Server.sslContext = SslContextBuilder.forServer(cert.certificate(), cert.privateKey()).build();
+        Server.sslContext = SslContextBuilder.forServer(cert.certificate(), cert.privateKey()).sslProvider(SslProvider.OPENSSL).build();
     }
 
     private void startBootstrap() {
