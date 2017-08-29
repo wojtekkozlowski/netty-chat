@@ -2,10 +2,13 @@ package client;
 
 import java.io.IOException;
 import java.net.SocketException;
+import java.sql.Time;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.LongAdder;
 
 import org.jpos.core.Configuration;
 import org.jpos.core.ConfigurationException;
@@ -21,15 +24,15 @@ import org.jpos.util.SimpleLogListener;
 public class Client {
 
     private static final Logger LOGGER = new Logger();
+    public static final int TIMEOUT = 30000;
 
     private String host;
     private int port;
     private int connections;
-    private int connectionSpread;
-    private int echoSpread;
     private final Boolean useSSL;
     private final ExecutorService executorService;
-    private int channelTimeout;
+    private static LongAdder responses = new LongAdder();
+    private static ScheduledExecutorService metrics = Executors.newSingleThreadScheduledExecutor();
 
     public static void main(String[] args) throws InterruptedException, IOException, ISOException {
         LOGGER.addListener(new SimpleLogListener(System.err));
@@ -38,52 +41,35 @@ public class Client {
         int port;
         Boolean useSSL;
         int connections;
-        int connectionSpread;
-        int echoSpread;
-        int connsPerSecond;
-        int echoesPerSecond;
-        int channelTimeout;
         if (args.length > 0) {
             host = args[0];
             port = Integer.valueOf(args[1]);
             useSSL = Boolean.valueOf(args[2]);
             connections = Integer.valueOf(args[3]);
-            connsPerSecond = Integer.valueOf(args[4]);
-            echoesPerSecond = Integer.valueOf(args[5]);
-            channelTimeout = Integer.valueOf(args[6]);
         } else {
             System.out.println("Usage:");
-            System.out.println("<host> <port> <use SSL? true|false> <concurrent_connections> <connections/sec> <echos/sec> <channel_timeout>");
+            System.out.println("<host> <port> <use SSL? true|false> <concurrent_connections>");
             host = "localhost";
             port = 8000;
             useSSL = true;
             connections = 1000;
-            connsPerSecond = 1000;
-            echoesPerSecond = 100;
-            channelTimeout = 10000;
             System.out.println("using defaults:");
             System.out.println("\n");
         }
-        connectionSpread = (int) (connections / (double) connsPerSecond * 1000);
-        echoSpread = (int) (connections / (double) echoesPerSecond * 1000);
         System.out.println("\tuse SSL:\t\t\t" + useSSL);
-        System.out.println("\tconcurrent_connections:\t\t" + connections);
-        System.out.println("\tconnections / sec:\t\t" + connsPerSecond + " /s");
-        System.out.println("\ttotal echos / sec:\t\t" + echoesPerSecond + " /s");
-        System.out.println("\tchannel timeout in ms:\t\t" + channelTimeout + " ms");
+        System.out.println("\tconcurrent_connections: \t\t" + connections);
         System.out.println("\n");
 
-        new Client(host, port, useSSL, connections, connectionSpread, echoSpread, channelTimeout);
+        metrics.scheduleAtFixedRate(() -> System.out.println("responses: " + responses.sum()), 0, 1, TimeUnit.SECONDS);
+
+        new Client(host, port, useSSL, connections);
     }
 
-    private Client(String host, int port, Boolean useSSL, int connections, int connectionSpread, int echoSpread, int channelTimeout) throws ISOException, InterruptedException, IOException {
+    private Client(String host, int port, Boolean useSSL, int connections) throws ISOException, InterruptedException, IOException {
         this.host = host;
         this.port = port;
         this.useSSL = useSSL;
         this.connections = connections;
-        this.connectionSpread = connectionSpread;
-        this.echoSpread = echoSpread;
-        this.channelTimeout = channelTimeout;
         executorService = Executors.newFixedThreadPool(this.connections);
         for (int i = 0; i < this.connections; i++) {
             int finalI = i;
@@ -98,51 +84,59 @@ public class Client {
         executorService.awaitTermination(10000, TimeUnit.DAYS);
     }
 
-    private void startChannel(int i) throws Exception {
+    private void startChannel(int i) throws ISOException {
         XMLChannel channel = new XMLChannel(host, port, new XMLPackager());
         if (useSSL) {
             channel.setSocketFactory(new SunJSSESocketFactory());
         }
         try {
-            channel.setTimeout(channelTimeout);
+            channel.setTimeout(TIMEOUT);
             channel.setConfiguration(clientConfiguration());
         } catch (ConfigurationException | SocketException e) {
+            System.out.println("a");
             e.printStackTrace();
         }
 
-        while (true) {
-            long start = 0;
+        long start = 0;
+        boolean couldSend = false;
+        while (!couldSend) {
             try {
                 connectIfNotConnected(channel, i);
-                tryToSleep(i);
                 start = System.nanoTime();
                 channel.send(getIsoMsg());
+                couldSend = true;
             } catch (Throwable e) {
                 System.out.println(i + ": channel send exception (" + e.getMessage() + ")");
                 reconnect(channel);
-                return;
             }
-            try {
-                ISOMsg receive = channel.receive();
-                long end = (System.nanoTime() - start);
-                if ((end / 1000000) > channelTimeout) {
-                    System.out.println("wallclock timeout, timeout is: " + channelTimeout + ", but got response after :" + (end / 1000000));
-                    reconnect(channel);
-                }
-                if (receive == null) {
-                    System.out.println("Recevied null response, reconnecting");
-                    reconnect(channel);
-                }
-            } catch (Throwable e) {
-                System.out.println(i + ": channel read exception (" + e.getMessage() + ")");
+        }
+        try {
+            ISOMsg receive = channel.receive();
+
+            long end = (System.nanoTime() - start);
+            if ((end / 1000000) > TIMEOUT) {
+                System.out.println("wallclock timeout, timeout is: " + TIMEOUT + ", but got response after :" + (end / 1000000));
                 reconnect(channel);
             }
+            if (receive == null) {
+                System.out.println("Recevied null response, reconnecting");
+                reconnect(channel);
+            } else {
+                responses.increment();
+            }
+        } catch (Throwable e) {
+            System.out.println(i + ": channel read exception (" + e.getMessage() + ")");
+            reconnect(channel);
         }
     }
 
-    private void reconnect(XMLChannel channel) throws Exception {
-        channel.disconnect();
-        tryToSleep(-1);
+    private void reconnect(XMLChannel channel) {
+        System.out.println("reconnect!");
+        try {
+            channel.disconnect();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         executorService.submit(() -> {
             try {
                 startChannel(-1);
@@ -153,19 +147,10 @@ public class Client {
 
     }
 
-    private void tryToSleep(int i) {
-        try {
-            Thread.sleep(Double.valueOf(Math.random() * echoSpread).longValue());
-        } catch (InterruptedException e) {
-            System.out.println(i + " couldn't sleep");
-        }
-    }
-
     private void connectIfNotConnected(XMLChannel channel, int i) {
         int conProbs = 0;
         while (!channel.isConnected()) {
             try {
-                tryToSleep(i);
                 channel.connect();
             } catch (IOException e) {
                 if (conProbs == 0) {

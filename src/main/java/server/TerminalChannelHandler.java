@@ -1,7 +1,5 @@
 package server;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.LongAdder;
 
 import io.netty.channel.Channel;
@@ -15,7 +13,6 @@ public class TerminalChannelHandler extends SimpleChannelInboundHandler<String> 
 
     static final ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
     static final LongAdder msgCounter = new LongAdder();
-    private ExecutorService executorService = Executors.newFixedThreadPool(20);
 
     @Override
     public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
@@ -26,21 +23,16 @@ public class TerminalChannelHandler extends SimpleChannelInboundHandler<String> 
 
     @Override
     public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
+        System.out.println("removed!!!");
         super.handlerRemoved(ctx);
     }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, String msg) throws Exception {
         msgCounter.increment();
-//        executorService.submit(() -> {
-//            try {
-//                Thread.sleep(250);
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-            Channel incoming = ctx.channel();
-            String s = msg.replaceFirst("0800", "0810");
-            incoming.writeAndFlush(s + "\n");
-//        });
+
+        Channel incoming = ctx.channel();
+        String s = msg.replaceFirst("0800", "0810");
+        incoming.writeAndFlush(s + "\n");
     }
 }

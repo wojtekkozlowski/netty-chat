@@ -58,7 +58,7 @@ public class Server {
 
     private void startBootstrap() {
         EventLoopGroup acceptorGroup = new NioEventLoopGroup(1);
-        EventLoopGroup clientGroup = new NioEventLoopGroup();
+        EventLoopGroup clientGroup = new NioEventLoopGroup(8);
         ServerBootstrap serverBootstrap = new ServerBootstrap()
                 .group(acceptorGroup, clientGroup)
                 .channel(NioServerSocketChannel.class)
@@ -110,12 +110,10 @@ public class Server {
                 double messagesRate = (messagesSum - previousMessagesSum) / 3;
                 messagesRate = Math.round(messagesRate * 10) / 10;
 
-                String s = "" + connections + ", " + currentconnectionsRate + ", " + messagesRate;
+                String s = "" + connections + ", " + currentconnectionsRate + ", " + messagesRate + ", total msgs: " + TerminalChannelHandler.msgCounter.sum();
                 last4Connections.clear();
-                last4Messages.clear();
                 previousConnectionsSum = currentconnectionsSum;
                 previousMessagesSum = 0d;
-                TerminalChannelHandler.msgCounter.reset();
                 return Optional.of(s);
             }
         });
