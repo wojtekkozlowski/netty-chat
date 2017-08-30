@@ -5,14 +5,36 @@ pwd=`pwd`
 current_dir=`basename $pwd`
 tar -cf /tmp/netty-chat.tar "../"$current_dir
 
-echo "--- Copy and untar to agnes ---"
-scp /tmp/netty-chat.tar agnes:/tmp
-ssh agnes "cd /tmp; tar -xf netty-chat.tar"
+function deploy_to(){
+	echo "--- Copy and untar to "$1" ---"
+	scp /tmp/netty-chat.tar $1:/tmp 
+	ssh $1 "cd /tmp; tar -xf netty-chat.tar"	
+}
 
-echo "--- Copy and untar chalmers ---"
-scp /tmp/netty-chat.tar chalmers:/tmp
-ssh chalmers "cd /tmp; tar -xf netty-chat.tar"
+deploy_to "agnes"
+deploy_to "chalmers"
+deploy_to "kevin"
+deploy_to "buttercup"
+deploy_to "roz"
+deploy_to "barbie"
+deploy_to "bookworm"
+deploy_to "skinner"
+deploy_to "dolph"
+deploy_to "destiny"
+deploy_to "lurleane"
 
-echo "--- Copy and untar kevin ---"
-scp /tmp/netty-chat.tar kevin:/tmp
-ssh kevin "cd /tmp; tar -xf netty-chat.tar"
+# echo "--- Copy and untar chalmers ---"
+# scp /tmp/netty-chat.tar chalmers:/tmp
+# ssh chalmers "cd /tmp; tar -xf netty-chat.tar"
+
+# echo "--- Copy and untar kevin ---"
+# scp /tmp/netty-chat.tar kevin:/tmp
+# ssh kevin "cd /tmp; tar -xf netty-chat.tar"
+
+# echo "--- Copy and untar buttercup ---"
+# scp /tmp/netty-chat.tar buttercup:/tmp
+# ssh buttercup "cd /tmp; tar -xf netty-chat.tar"
+
+# echo "--- Copy and untar roz ---"
+# scp /tmp/netty-chat.tar roz:/tmp
+# ssh buttercup "cd /tmp; tar -xf netty-chat.tar"

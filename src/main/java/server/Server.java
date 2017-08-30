@@ -22,10 +22,7 @@ public class Server {
     static SslContext sslContext;
     private final int port;
     private static List<Integer> last4Connections = new ArrayList<>();
-    private static List<Long> last4Messages = new ArrayList<>();
     private static Double previousConnectionsSum = 0d;
-    private static Double previousMessagesSum = 0d;
-
 
     public static void main(String[] args) throws Exception {
         Boolean useSSL;
@@ -100,21 +97,15 @@ public class Server {
 
             if (Server.last4Connections.size() < 3) {
                 Server.last4Connections.add(connections);
-                Server.last4Messages.add(TerminalChannelHandler.msgCounter.sum());
                 return Optional.of("" + connections);
             } else {
                 double currentconnectionsSum = last4Connections.parallelStream().mapToDouble(d -> d).sum();
                 double currentconnectionsRate = (currentconnectionsSum - previousConnectionsSum) / 3;
                 currentconnectionsRate = Math.round(currentconnectionsRate * 10) / 10;
 
-                double messagesSum = last4Messages.parallelStream().mapToDouble(d -> d).sum();
-                double messagesRate = (messagesSum - previousMessagesSum) / 3;
-                messagesRate = Math.round(messagesRate * 10) / 10;
-
-                String s = "" + connections + ", " + currentconnectionsRate + ", " + messagesRate + ", total msgs: " + TerminalChannelHandler.msgCounter.sum();
+                String s = "" + connections + ", " + currentconnectionsRate + " conn/sec";
                 last4Connections.clear();
                 previousConnectionsSum = currentconnectionsSum;
-                previousMessagesSum = 0d;
                 return Optional.of(s);
             }
         });

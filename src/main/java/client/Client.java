@@ -2,7 +2,6 @@ package client;
 
 import java.io.IOException;
 import java.net.SocketException;
-import java.sql.Time;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -98,35 +97,47 @@ public class Client {
         }
 
         long start = 0;
-        boolean couldSend = false;
-        while (!couldSend) {
+        while (true) {
+            boolean couldSend = false;
+            while (!couldSend) {
+                try {
+                    connectIfNotConnected(channel, i);
+                    start = System.nanoTime();
+                    channel.send(getIsoMsg());
+                    couldSend = true;
+                } catch (Throwable e) {
+                    System.out.println(i + ": channel send exception (" + e.getMessage() + ")");
+                    reconnect(channel);
+                }
+            }
             try {
-                connectIfNotConnected(channel, i);
-                start = System.nanoTime();
-                channel.send(getIsoMsg());
-                couldSend = true;
+                ISOMsg receive = channel.receive();
+
+                long end = (System.nanoTime() - start);
+                if ((end / 1000000) > TIMEOUT) {
+                    System.out.println("wallclock timeout, timeout is: " + TIMEOUT + ", but got response after :" + (end / 1000000));
+                    reconnect(channel);
+                }
+                if (receive == null) {
+                    System.out.println("Recevied null response, reconnecting");
+                    reconnect(channel);
+                } else {
+                    responses.increment();
+                }
             } catch (Throwable e) {
-                System.out.println(i + ": channel send exception (" + e.getMessage() + ")");
+                System.out.println(i + ": channel read exception (" + e.getMessage() + ")");
                 reconnect(channel);
+            } finally {
+                tryToSleep(50);
             }
         }
-        try {
-            ISOMsg receive = channel.receive();
+    }
 
-            long end = (System.nanoTime() - start);
-            if ((end / 1000000) > TIMEOUT) {
-                System.out.println("wallclock timeout, timeout is: " + TIMEOUT + ", but got response after :" + (end / 1000000));
-                reconnect(channel);
-            }
-            if (receive == null) {
-                System.out.println("Recevied null response, reconnecting");
-                reconnect(channel);
-            } else {
-                responses.increment();
-            }
-        } catch (Throwable e) {
-            System.out.println(i + ": channel read exception (" + e.getMessage() + ")");
-            reconnect(channel);
+    private void tryToSleep(int seconds) {
+        try {
+            Thread.sleep(1000 * seconds);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 

@@ -23,7 +23,7 @@ public class TerminalChannelHandler extends SimpleChannelInboundHandler<String> 
 
     @Override
     public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
-//        System.out.println("removed!!!");
+        System.out.println("removed!!!");
         super.handlerRemoved(ctx);
     }
 
